@@ -1,6 +1,10 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+
 import shutil
 import os
+import pandas as pd
 
 from database import SessionLocal, engine
 from models import Base, Location
@@ -8,11 +12,25 @@ from excel_parser import read_excel
 from map_parser import extract_coordinates
 from clustering import cluster_locations
 
-Base.metadata.create_all(bind=engine)
 
+# Create FastAPI app
 app = FastAPI()
 
-UPLOAD_FOLDER = "uploads"
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://20.219.252.245:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+# Upload folder
+UPLOAD_FOLDER = "/home/kailas/Proximate-Location-Locator/PLL/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 @app.post("/upload")
@@ -74,11 +92,7 @@ async def upload_excel(file: UploadFile = File(...)):
     db.commit()
     db.close()
 
-    return {
-        "clusters": results
-    }
-from fastapi.responses import FileResponse
-import pandas as pd
+    return {"clusters": results}
 
 
 @app.get("/download")
