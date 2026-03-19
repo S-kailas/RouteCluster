@@ -1,6 +1,6 @@
 
 // ================= CONFIG =================
-const BASE_URL = "http://20.219.252.245:8000"   // ← CHANGE if needed
+const BASE_URL = "http://VPSip:800"   // ← CHANGE if needed
 // =========================================
 
 
