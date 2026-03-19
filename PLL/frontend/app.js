@@ -1,82 +1,140 @@
-let map = L.map('map').setView([8.54,76.90],12)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
+// ================= CONFIG =================
+const BASE_URL = "http://20.219.252.245:8000"   // ← CHANGE if needed
+// =========================================
+
+
+// Initialize map
+let map = L.map('map').setView([8.54, 76.90], 12)
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
 }).addTo(map)
 
 let markers = []
+let polylines = []
 
-function clearMarkers(){
 
-markers.forEach(m => map.removeLayer(m))
-markers = []
+// Clear map
+function clearMap() {
+    markers.forEach(m => map.removeLayer(m))
+    polylines.forEach(p => map.removeLayer(p))
 
+    markers = []
+    polylines = []
 }
 
-async function uploadFile(){
 
-let fileInput = document.getElementById("excelFile")
+// Upload file
+async function uploadFile() {
 
-if(!fileInput.files.length){
+    let fileInput = document.getElementById("excelFile")
 
-alert("Upload Excel File")
-return
+    if (!fileInput.files.length) {
+        alert("Upload Excel File")
+        return
+    }
 
+    let formData = new FormData()
+    formData.append("file", fileInput.files[0])
+
+    try {
+
+        let response = await fetch(`${BASE_URL}/upload`, {
+            method: "POST",
+            body: formData
+        })
+
+        if (!response.ok) {
+            alert("Upload failed")
+            return
+        }
+
+        let data = await response.json()
+
+        if (!data.clusters) {
+            alert("Invalid response from server")
+            return
+        }
+
+        displayClusters(data.clusters)
+
+    } catch (error) {
+        console.error(error)
+        alert("Server error")
+    }
 }
 
-let formData = new FormData()
 
-formData.append("file",fileInput.files[0])
+// Display clusters
+function displayClusters(clusters) {
 
-let response = await fetch("http://localhost:8000/upload",{
+    clearMap()
 
-method:"POST",
-body:formData
+    let colors = ["red", "blue", "green", "orange", "purple", "black"]
 
-})
+    let allPoints = []
 
-let data = await response.json()
+    clusters.forEach((cluster, index) => {
 
-displayClusters(data.clusters)
+        let color = colors[index % colors.length]
 
+        // ---------- MARKERS ----------
+        cluster.points.forEach(p => {
+
+            let latlng = [p.lat, p.lng]
+
+            let marker = L.circleMarker(latlng, {
+                radius: 8,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.8
+            }).addTo(map)
+
+            marker.bindPopup(`Cluster ${cluster.cluster_id}<br>Order: ${p.order}`)
+
+            markers.push(marker)
+            allPoints.push(latlng)
+        })
+
+        // ---------- ROUTE ----------
+        if (cluster.geometry && cluster.geometry.length > 0) {
+
+            // Real OSRM route
+            let polyline = L.polyline(cluster.geometry, {
+                color: color,
+                weight: 4
+            }).addTo(map)
+
+            polylines.push(polyline)
+
+        } else {
+
+            // Fallback (straight line)
+            let fallback = cluster.points
+                .sort((a, b) => a.order - b.order)
+                .map(p => [p.lat, p.lng])
+
+            let polyline = L.polyline(fallback, {
+                color: color,
+                dashArray: "5,5",
+                weight: 3
+            }).addTo(map)
+
+            polylines.push(polyline)
+        }
+
+    })
+
+    // ---------- AUTO ZOOM ----------
+    if (allPoints.length > 0) {
+        map.fitBounds(allPoints)
+    }
 }
 
-function displayClusters(locations){
 
-clearMarkers()
-
-let colors = [
-"red",
-"blue",
-"green",
-"orange",
-"purple",
-"black"
-]
-
-locations.forEach(loc => {
-
-let color = colors[loc.cluster % colors.length]
-
-let marker = L.circleMarker([loc.lat,loc.lng],{
-
-radius:8,
-color:color,
-fillColor:color,
-fillOpacity:0.8
-
-}).addTo(map)
-
-marker.bindPopup("Cluster: "+loc.cluster)
-
-markers.push(marker)
-
-})
-
+// Download Excel
+function downloadExcel() {
+    window.open(`${BASE_URL}/download`)
 }
 
-function downloadExcel(){
-
-window.open("http://localhost:8000/download")
-
-}
