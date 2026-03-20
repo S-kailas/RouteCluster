@@ -35,8 +35,14 @@ async function uploadFile() {
         return
     }
 
-    let radius = radiusInput ? radiusInput.value : 3
+    let radiusInput = document.getElementById("radius")
 
+    let radius = 3
+    if (radiusInput && radiusInput.value) {
+    radius = parseFloat(radiusInput.value)
+    }
+
+console.log("Sending radius:", radius)   // DEBUG
     let formData = new FormData()
     formData.append("file", fileInput.files[0])
     formData.append("radius", radius)   // ← NEW
