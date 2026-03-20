@@ -1,7 +1,9 @@
 # RouteCluster
 
-A web-based tool to cluster geographic locations and generate optimized travel routes using real road data(Travelling sales man problem)
-Illustration: https://youtu.be/giG7-zn7DPs?si=mjvFTqZkbYPYb0xG
+A web-based tool to cluster geographic locations and generate optimized travel routes using real road data (Travelling Salesman Problem).
+
+**Illustration:** https://youtu.be/giG7-zn7DPs?si=mjvFTqZkbYPYb0xG
+
 ---
 
 ## Overview
@@ -9,15 +11,15 @@ Illustration: https://youtu.be/giG7-zn7DPs?si=mjvFTqZkbYPYb0xG
 RouteCluster allows users to upload a list of Google Maps location links and:
 
 * Automatically group nearby locations (distance-based clustering)
-* Optimize visit order within each group
+* Optimize the visit order within each group
 * Visualize real road routes on an interactive map
 * Download processed results as an Excel file
 
 ---
 
-## ⚙️ Core Features
+## Core Features
 
-*  Excel upload (`.xlsx`)
+* Excel upload (`.xlsx`)
 * Google Maps link parsing (`?q=lat,lng`)
 * Distance-based clustering (DBSCAN)
 * Route optimization (Nearest Neighbor + OSRM)
@@ -54,7 +56,7 @@ Excel file must contain:
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
 ### Backend
 
@@ -75,7 +77,7 @@ Excel file must contain:
 
 ---
 
-## 🔧 Setup (VPS/LocalMachine)
+## Setup (VPS / Local Machine)
 
 ### 1. Install dependencies
 
@@ -91,35 +93,32 @@ cd backend
 uv venv
 uv pip install -r requirements.txt
 source .venv/bin/activate
-
 ```
 
-### 3. Run server
+### 3. Run servers
 
 ```bash
-$~/backend uvicorn main:app --host 0.0.0.0 --port 8000
-$~/frontend python3 -m http.server 3000
-
-
+~/backend uvicorn main:app --host 0.0.0.0 --port 8000
+~/frontend python3 -m http.server 3000
 ```
 
 ---
 
-## 🌐 Access
+## Access
 
 * Frontend → `http://<VPS-IP>:3000`
 * Backend → `http://<VPS-IP>:8000`
 
 ---
 
-## ⚡ How It Works
+## How It Works
 
 1. Upload Excel file
 2. System extracts coordinates
 3. Locations are clustered by distance (km radius)
 4. Each cluster is optimized into a route
-5. Routes are drawn using real road geometry
-6. Results displayed + downloadable
+5. Routes are generated using real road geometry
+6. Results are displayed and available for download
 
 ---
 
@@ -128,26 +127,11 @@ $~/frontend python3 -m http.server 3000
 * Uses public OSRM
 * No traffic-aware routing
 * No multi-vehicle optimization
-* Input format is strict
+* Strict input format
 
 ---
 
 ## Future Improvements
 
 * Dynamic radius slider (live clustering)
-* Self-hosted OSRM for performance
-* Multi-route planning
-* Better input parsing (short links, place URLs)
-* Authentication + project storage
-
----
-
-## Status
-
-MVP — functional and deployable for real-world usage.
-
----
-
-##  Author
-
-Built as a location intelligence and routing system using open-source tools.
+* Self-hosted OSRM for better performance
