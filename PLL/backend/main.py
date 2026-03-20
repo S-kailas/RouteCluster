@@ -1,5 +1,5 @@
 ```python
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -18,16 +18,13 @@ from route_optimizer import nearest_neighbor
 
 
 # ================= CONFIG =================
-# Optional start/end points
-START_POINT = None   # example: (8.54, 76.90)
-END_POINT = None     # example: (8.55, 76.91)
+START_POINT = None
+END_POINT = None
 # =========================================
 
 
-# Create FastAPI app
 app = FastAPI()
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://VPSip:3000"],
@@ -36,16 +33,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create tables
 Base.metadata.create_all(bind=engine)
 
-# Upload folder
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 @app.post("/upload")
-async def upload_excel(file: UploadFile = File(...)):
+async def upload_excel(
+    file: UploadFile = File(...),
+    radius: float = Form(3)   # ← NEW (radius input)
+):
+
+    # -------- VALIDATION (important) --------
+    if radius <= 0 or radius > 50:
+        radius = 3
 
     file_path = os.path.join(UPLOAD_FOLDER, file.filename)
 
@@ -74,7 +76,7 @@ async def upload_excel(file: UploadFile = File(...)):
         })
 
     # ---------------- CLUSTERING ----------------
-    labels = cluster_locations(coords)
+    labels = cluster_locations(coords, eps_km=radius)   # ← UPDATED
 
     clusters = {}
 
@@ -91,29 +93,23 @@ async def upload_excel(file: UploadFile = File(...)):
 
         working_coords = base_coords[:]
 
-        # Add optional start/end
         if START_POINT:
             working_coords.insert(0, START_POINT)
 
         if END_POINT:
             working_coords.append(END_POINT)
 
-        # OSRM distance matrix
         matrix = get_distance_matrix(working_coords)
 
-        # Fallback if OSRM fails
         if matrix is None:
             order = list(range(len(working_coords)))
         else:
             order = nearest_neighbor(matrix, start_index=0)
 
-        # Ordered coords
         ordered_coords = [working_coords[i] for i in order]
 
-        # Get real road geometry
         geometry = get_route_geometry(ordered_coords)
 
-        # Map back to original points (exclude start/end)
         points = []
         order_counter = 1
 
@@ -143,7 +139,7 @@ async def upload_excel(file: UploadFile = File(...)):
             "geometry": geometry
         })
 
-    # ---------------- SAVE TO DB (CLUSTER ONLY) ----------------
+    # ---------------- SAVE TO DB ----------------
     db = SessionLocal()
 
     for cluster in final_clusters:
@@ -152,7 +148,7 @@ async def upload_excel(file: UploadFile = File(...)):
         for p in cluster["points"]:
             loc = Location(
                 excel_id=p["id"],
-                map_link="",
+                map_link="",   # (you may improve later)
                 latitude=p["lat"],
                 longitude=p["lng"],
                 cluster_id=cid
